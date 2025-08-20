@@ -6,6 +6,7 @@ import { useRef, useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import * as THREE from 'three';
 
 // Advanced 3D Background with multiple elements
@@ -19,7 +20,40 @@ function Background() {
       <pointLight position={[-10, -10, -10]} intensity={1.2} color="#8b5cf6" />
       <OrbitControls enableZoom={false} enablePan={false} />
       <FloatingObjects />
+      <ParticleField />
     </>
+  );
+}
+
+// Particle field effect
+function ParticleField() {
+  const count = 500;
+  const particlesRef = useRef<THREE.Points>(null);
+  
+  useFrame((state) => {
+    if (particlesRef.current) {
+      particlesRef.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.1) * 0.05;
+      particlesRef.current.rotation.y = Math.cos(state.clock.getElapsedTime() * 0.1) * 0.05;
+    }
+  });
+  const positions = new Float32Array(count * 3);
+  
+  for (let i = 0; i < count; i++) {
+    const i3 = i * 3;
+    positions[i3] = (Math.random() - 0.5) * 20;
+    positions[i3 + 1] = (Math.random() - 0.5) * 20;
+    positions[i3 + 2] = (Math.random() - 0.5) * 20;
+  }
+  return (
+    <points ref={particlesRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+        />
+      </bufferGeometry>
+      <pointsMaterial size={0.05} color="#ffffff" transparent opacity={0.6} />
+    </points>
   );
 }
 
@@ -33,7 +67,6 @@ function FloatingObjects() {
       groupRef.current.rotation.x = Math.cos(state.clock.getElapsedTime() * 0.3) * 0.05;
     }
   });
-
   return (
     <group ref={groupRef}>
       <FloatingSphere position={[3, 2, -5]} color="#6366f1" />
@@ -41,6 +74,8 @@ function FloatingObjects() {
       <FloatingTorus position={[2, -3, -6]} color="#ec4899" />
       <FloatingSphere position={[-3, 3, -8]} color="#3b82f6" size={0.7} />
       <FloatingCube position={[5, -2, -9]} color="#10b981" size={0.8} />
+      <FloatingPyramid position={[-2, -4, -10]} color="#f59e0b" />
+      <FloatingTorus position={[4, 4, -7]} color="#ef4444" size={0.6} />
     </group>
   );
 }
@@ -56,7 +91,6 @@ function FloatingSphere({ position, color, size = 1 }: { position: [number, numb
       ref.current.rotation.y = state.clock.getElapsedTime() * 0.3;
     }
   });
-
   return (
     <Sphere ref={ref} position={position} args={[size, 32, 32]}>
       <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
@@ -74,7 +108,6 @@ function FloatingCube({ position, color, size = 1 }: { position: [number, number
       ref.current.rotation.z = state.clock.getElapsedTime() * 0.2;
     }
   });
-
   return (
     <Box ref={ref} position={position} args={[size, size, size]}>
       <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.2} />
@@ -92,11 +125,27 @@ function FloatingTorus({ position, color, size = 1 }: { position: [number, numbe
       ref.current.rotation.y = state.clock.getElapsedTime() * 0.2;
     }
   });
-
   return (
     <Torus ref={ref} position={position} args={[size, 0.3, 16, 100]}>
       <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
     </Torus>
+  );
+}
+
+function FloatingPyramid({ position, color, size = 1 }: { position: [number, number, number]; color: string; size?: number }) {
+  const ref = useRef<THREE.Mesh>(null);
+  
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.position.y = position[1] + Math.sin(state.clock.getElapsedTime() + position[0] * 3) * 0.2;
+      ref.current.rotation.y = state.clock.getElapsedTime() * 0.5;
+    }
+  });
+  return (
+    <mesh ref={ref} position={position}>
+      <coneGeometry args={[size, size * 1.5, 4]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} />
+    </mesh>
   );
 }
 
@@ -118,7 +167,7 @@ function FloatingText({ position, text, color = "white" }: { position: [number, 
 }
 
 // Interactive 3D Card
-function InteractiveCard({ title, description, index }: { title: string; description: string; index: number }) {
+function InteractiveCard({ title, description, index, icon }: { title: string; description: string; index: number; icon: string }) {
   const [hovered, setHovered] = useState(false);
   
   return (
@@ -131,22 +180,31 @@ function InteractiveCard({ title, description, index }: { title: string; descrip
       <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br transition-all duration-500 ${
         index === 0 ? 'from-blue-600/20 to-indigo-700/30' : 
         index === 1 ? 'from-purple-600/20 to-pink-700/30' : 
-        'from-emerald-600/20 to-teal-700/30'
+        index === 2 ? 'from-emerald-600/20 to-teal-700/30' :
+        index === 3 ? 'from-amber-600/20 to-orange-700/30' :
+        index === 4 ? 'from-rose-600/20 to-red-700/30' :
+        'from-cyan-600/20 to-blue-700/30'
       } ${hovered ? 'opacity-100 blur-md' : 'opacity-70'}`} />
       
       <div className="relative h-full rounded-2xl bg-gray-900/70 backdrop-blur-lg border border-gray-800 p-6 transition-all duration-300 hover:border-gray-700">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${
           index === 0 ? 'bg-blue-500/20 text-blue-400' : 
           index === 1 ? 'bg-purple-500/20 text-purple-400' : 
-          'bg-emerald-500/20 text-emerald-400'
+          index === 2 ? 'bg-emerald-500/20 text-emerald-400' :
+          index === 3 ? 'bg-amber-500/20 text-amber-400' :
+          index === 4 ? 'bg-rose-500/20 text-rose-400' :
+          'bg-cyan-500/20 text-cyan-400'
         }`}>
-          <div className="text-xl font-bold">{index + 1}</div>
+          <div className="text-xl font-bold">{icon}</div>
         </div>
         
         <h3 className="text-xl font-bold mb-2 bg-gradient-to-r bg-clip-text text-transparent ${
           index === 0 ? 'from-blue-400 to-indigo-400' : 
           index === 1 ? 'from-purple-400 to-pink-400' : 
-          'from-emerald-400 to-teal-400'
+          index === 2 ? 'from-emerald-400 to-teal-400' :
+          index === 3 ? 'from-amber-400 to-orange-400' :
+          index === 4 ? 'from-rose-400 to-red-400' :
+          'from-cyan-400 to-blue-400'
         }">
           {title}
         </h3>
@@ -204,9 +262,23 @@ function FeatureSection() {
       title: 'Custom AI Profiles',
       description: 'Choose from Academic, Journalist, or Analyst profiles to tailor research to your specific needs.',
       icon: '🧠'
+    },
+    {
+      title: 'Advanced Data Extraction',
+      description: 'Extract structured data from unstructured sources using our proprietary AI algorithms.',
+      icon: '🔍'
+    },
+    {
+      title: 'Cross-Platform Access',
+      description: 'Access your research from any device with our responsive web and mobile applications.',
+      icon: '📱'
+    },
+    {
+      title: 'Export & Sharing',
+      description: 'Export your findings in multiple formats and share them with colleagues or publish online.',
+      icon: '📤'
     }
   ];
-
   return (
     <div className="py-20 relative">
       <div className="absolute inset-0 z-0">
@@ -248,7 +320,8 @@ function FeatureSection() {
               <InteractiveCard 
                 title={feature.title} 
                 description={feature.description} 
-                index={index} 
+                index={index % 6}
+                icon={feature.icon}
               />
             </motion.div>
           ))}
@@ -282,7 +355,6 @@ function HowItWorks() {
       color: "from-amber-500 to-orange-600"
     }
   ];
-
   return (
     <div className="py-20 relative">
       <div className="absolute inset-0 z-0">
@@ -368,7 +440,6 @@ function Testimonials() {
       color: "from-emerald-500/20 to-teal-500/20"
     }
   ];
-
   return (
     <div className="py-20 relative">
       <div className="absolute inset-0 z-0">
@@ -452,13 +523,70 @@ function CTASection() {
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800 text-lg px-8 py-4 rounded-full shadow-lg shadow-blue-500/20">
-              Get Started Free
-            </Button>
-            <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800 text-lg px-8 py-4 rounded-full">
-              Schedule a Demo
-            </Button>
+            <Link href="/dashboard">
+              <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800 text-lg px-8 py-4 rounded-full shadow-lg shadow-blue-500/20">
+                Get Started Free
+              </Button>
+            </Link>
           </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// Newsletter Section
+function NewsletterSection() {
+  const [email, setEmail] = useState('');
+  
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    
+    // Here you would normally send the email to your backend
+    toast.success('Thank you for subscribing! You will receive our newsletter soon.');
+    setEmail('');
+  };
+  return (
+    <div className="py-20 relative">
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-br from-blue-900/10 via-purple-900/10 to-pink-900/10" />
+      </div>
+      
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            Stay Updated
+          </h2>
+          <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+            Subscribe to our newsletter for the latest updates, features, and AI research insights.
+          </p>
+          
+          <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 bg-gray-800/70 backdrop-blur-sm border border-gray-700 text-white placeholder-gray-400 py-4 px-6 rounded-full"
+              required
+            />
+            <Button 
+              type="submit" 
+              className="bg-gradient-to-r from-green-600 to-teal-600 text-white hover:from-green-700 hover:to-teal-700 py-4 px-8 rounded-full shadow-lg shadow-green-500/20"
+            >
+              Subscribe
+            </Button>
+          </form>
         </motion.div>
       </div>
     </div>
@@ -467,33 +595,27 @@ function CTASection() {
 
 // Main component
 export default function LandingPage() {
-  const [email, setEmail] = useState('');
   const [researchQuery, setResearchQuery] = useState('');
   const [profile, setProfile] = useState('Academic');
   const [isMounted, setIsMounted] = useState(false);
-
+  
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Thank you for subscribing!');
-    setEmail('');
-  };
-
+  
   const handleResearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!researchQuery.trim()) {
       toast.error('Please enter a research query');
       return;
     }
-    toast.success(`Research started with profile: ${profile}`);
-    // Here we would normally navigate to the dashboard or start the research
+    toast.success(`Redirecting to dashboard with query: ${researchQuery}`);
+    // In a real app, you would navigate to the dashboard with the query
+    window.location.href = `/dashboard?query=${encodeURIComponent(researchQuery)}&profile=${profile}`;
   };
-
+  
   if (!isMounted) return null;
-
+  
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* 3D Background */}
@@ -531,42 +653,23 @@ export default function LandingPage() {
           </motion.p>
           
           <motion.div
-            className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row"
+            className="mt-16 flex justify-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
+            transition={{ duration: 0.7, delay: 0.6 }}
           >
-            <form onSubmit={handleResearch} className="flex w-full max-w-2xl flex-col gap-4 sm:flex-row">
-              <Input
-                type="text"
-                placeholder="What do you want to research?"
-                value={researchQuery}
-                onChange={(e) => setResearchQuery(e.target.value)}
-                className="flex-1 bg-gray-800/70 backdrop-blur-sm border border-gray-700 text-white placeholder-gray-400 py-4 px-6 rounded-full"
-              />
-              <select
-                value={profile}
-                onChange={(e) => setProfile(e.target.value)}
-                className="rounded-full bg-gray-800/70 backdrop-blur-sm border border-gray-700 px-6 py-4 text-white"
-              >
-                <option value="Academic">Academic</option>
-                <option value="Journalist">Journalist</option>
-                <option value="Analyst">Analyst</option>
-              </select>
-              <Button 
-                type="submit" 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 py-4 px-8 rounded-full shadow-lg shadow-blue-500/20"
-              >
-                Research
+            <Link href="/dashboard">
+              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 py-4 px-8 rounded-full shadow-lg shadow-indigo-500/20 text-lg">
+                Go to Dashboard
               </Button>
-            </form>
+            </Link>
           </motion.div>
           
           <motion.div
             className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.6 }}
+            transition={{ duration: 0.7, delay: 0.8 }}
           >
             {[
               {
@@ -616,45 +719,7 @@ export default function LandingPage() {
       <CTASection />
       
       {/* Newsletter Section */}
-      <div className="py-20 relative">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-br from-blue-900/10 via-purple-900/10 to-pink-900/10" />
-        </div>
-        
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              Stay Updated
-            </h2>
-            <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-              Subscribe to our newsletter for the latest updates, features, and AI research insights.
-            </p>
-            
-            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 bg-gray-800/70 backdrop-blur-sm border border-gray-700 text-white placeholder-gray-400 py-4 px-6 rounded-full"
-                required
-              />
-              <Button 
-                type="submit" 
-                className="bg-gradient-to-r from-green-600 to-teal-600 text-white hover:from-green-700 hover:to-teal-700 py-4 px-8 rounded-full shadow-lg shadow-green-500/20"
-              >
-                Subscribe
-              </Button>
-            </form>
-          </motion.div>
-        </div>
-      </div>
+      <NewsletterSection />
       
       {/* Footer */}
       <motion.footer
@@ -667,9 +732,9 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p>© {new Date().getFullYear()} Aurora AI. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a>
+              <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy</Link>
+              <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">Contact</Link>
             </div>
           </div>
         </div>
