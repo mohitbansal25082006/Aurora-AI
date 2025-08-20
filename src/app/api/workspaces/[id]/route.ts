@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/neon';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
+    
     const result = await sql`
       SELECT * FROM workspaces
-      WHERE id = ${params.id}
+      WHERE id = ${id}
     `;
     
     if (result.length === 0) {
@@ -19,8 +24,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id: workspaceId } = await params;
     const { name, description } = await request.json();
     
     const result = await sql`
@@ -29,7 +38,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         name = COALESCE(${name}, name),
         description = COALESCE(${description || null}, description),
         updated_at = NOW()
-      WHERE id = ${params.id}
+      WHERE id = ${workspaceId}
       RETURNING *
     `;
     
@@ -44,11 +53,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params;
+    
     await sql`
       DELETE FROM workspaces
-      WHERE id = ${params.id}
+      WHERE id = ${id}
     `;
     
     return NextResponse.json({ success: true });
