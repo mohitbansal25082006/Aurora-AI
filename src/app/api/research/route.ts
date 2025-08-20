@@ -14,8 +14,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("Processing research for:", query);
-
     // Step 1: Scrape the web for relevant information
     const scrapedData = await scrapeWeb(query, options.sources);
     
@@ -41,7 +39,7 @@ export async function POST(request: NextRequest) {
     }));
     
     // Step 6: Return the research results
-    const responseData = {
+    return NextResponse.json({
       query,
       options,
       data: scrapedData,
@@ -49,11 +47,7 @@ export async function POST(request: NextRequest) {
       sources,
       timeline,
       entities
-    };
-    
-    console.log("Sending response:", responseData);
-    
-    return NextResponse.json(responseData);
+    });
   } catch (error) {
     console.error('Research API error:', error);
     return NextResponse.json(

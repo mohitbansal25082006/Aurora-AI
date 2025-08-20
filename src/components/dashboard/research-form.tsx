@@ -14,6 +14,7 @@ import {
   MapPin,
   Filter
 } from 'lucide-react';
+import { trackResearch } from '@/lib/analytics';
 
 interface ResearchOptions {
   profile: string;
@@ -60,12 +61,16 @@ export function ResearchForm({ onResearch }: ResearchFormProps) {
     e.preventDefault();
     if (!query.trim()) return;
     
-    onResearch(query, {
+    const researchOptions = {
       profile: selectedProfile,
       sources: selectedSources,
       dateRange,
       location
-    });
+    };
+    
+    trackResearch(query, researchOptions);
+    
+    onResearch(query, researchOptions);
   };
 
   return (
